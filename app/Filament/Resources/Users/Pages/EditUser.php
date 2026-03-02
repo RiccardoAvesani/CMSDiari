@@ -7,7 +7,6 @@ use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Support\Facades\Auth;
 
 class EditUser extends EditRecord
 {

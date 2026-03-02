@@ -8,7 +8,6 @@ use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
-use Illuminate\Support\Facades\Auth;
 
 class ViewUser extends ViewRecord
 {
