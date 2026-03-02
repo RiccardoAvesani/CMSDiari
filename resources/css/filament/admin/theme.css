@@ -1,0 +1,73 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+
+@source '../../../../vendor/filament/**/*.blade.php';
+@source '../../../../vendor/filament/**/*.php';
+@source '../../../../app/Filament/**/*.php';
+@source '../../../../resources/views/filament/**/*.blade.php';
+@source '../../../../resources/views/components/**/*.blade.php';
+@source '../../../../resources/views/livewire/**/*.blade.php';
+@source '../../../../resources/js/**/*.js';
+
+
+@layer components {
+    .fi-sidebar {
+        @apply bg-slate-50 dark:bg-zinc-900;
+        @apply border-r border-gray-200 dark:border-gray-800;
+        @apply flex flex-col;
+    }
+
+
+    .fi-sidebar-nav {
+        @apply grow overflow-y-auto;
+    }
+
+
+    .cmsdiari-sidebar-footer {
+        @apply shrink-0;
+        @apply bg-slate-50 dark:bg-zinc-900;
+    }
+
+
+    .cmsdiari-sidebar-footer-inner {
+        /* Prima era height: 184px; ora lasciamo altezza naturale */
+        @apply px-4 py-4;
+        @apply flex flex-col;
+        @apply justify-end;
+        @apply gap-4;
+    }
+
+
+    .cmsdiari-divider {
+        @apply border-t border-gray-200 dark:border-gray-800;
+    }
+
+
+    .cmsdiari-logo-box {
+        @apply flex items-center justify-center;
+        @apply rounded-lg;
+        @apply bg-white/60 dark:bg-black/10;
+        @apply p-3;
+    }
+
+
+    .cmsdiari-logo-img {
+        @apply w-full;
+        @apply max-h-14;
+        @apply object-contain;
+    }
+
+    /* Toast (Filament Notifications): più evidenti */
+    .fi-notifications {
+        @apply z-[9999];
+    }
+
+    .fi-notifications .fi-notification {
+        @apply shadow-2xl;
+        @apply ring-2 ring-black/10 dark:ring-white/10;
+        @apply border border-gray-200 dark:border-gray-700;
+        @apply rounded-xl;
+        @apply bg-white dark:bg-zinc-950;
+        @apply w-[26rem] max-w-[calc(100vw-2rem)];
+    }
+}

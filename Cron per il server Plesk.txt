@@ -1,0 +1,26 @@
+#PVWP - Paritarie
+MAILTO="pippa@spaggiari.eu"
+SHELL="/bin/sh"
+5       0       *       *       *       (/opt/plesk/php/8.4/bin/php -f '/var/www/vhosts/sogiscuola.eu/paritariedev/app/backoffice/_lib/php/ssh-scripts/traduzioniAutomatiche.php')  > /dev/null
+4       0       *       *       *       (/opt/plesk/php/8.4/bin/php -f '/var/www/vhosts/sogiscuola.eu/paritarie00/app/backoffice/_lib/php/ssh-scripts/traduzioniAutomatiche.php')  > /dev/null
+2       0       *       *       *       (/opt/plesk/php/8.4/bin/php -f '/var/www/vhosts/sogiscuola.eu/paritarie03/app/backoffice/_lib/php/ssh-scripts/traduzioniAutomatiche.php')  > /dev/null
+3       0       *       *       *       (/opt/plesk/php/8.4/bin/php -f '/var/www/vhosts/sogiscuola.eu/paritarie04/app/backoffice/_lib/php/ssh-scripts/traduzioniAutomatiche.php')  > /dev/null
+1       0       *       *       *       (/opt/plesk/php/8.4/bin/php -f '/var/www/vhosts/sogiscuola.eu/paritarie02/app/backoffice/_lib/php/ssh-scripts/traduzioniAutomatiche.php')  > /dev/null
+0       0       *       *       *       (/opt/plesk/php/8.4/bin/php -f '/var/www/vhosts/sogiscuola.eu/paritarie01/app/backoffice/_lib/php/ssh-scripts/traduzioniAutomatiche.php')  > /dev/null
+
+#CMSDiari
+MAILTO="avesani@spaggiari.eu"
+SHELL="/bin/sh"
+#@desc: Coda Email Laravel
+*       *       *       *       *       cd /var/www/vhosts/sogiscuola.eu/cmsdiari; /opt/plesk/php/8.4/bin/php artisan queue:work --queue=mail --stop-when-empty --sleep=1 --timeout=30 --max-jobs=30 > /dev/null
+
+MAILTO="avesani@spaggiari.eu"
+SHELL="/bin/sh"
+#@desc: Coda Export Laravel
+*       *       *       *       *       cd /var/www/vhosts/sogiscuola.eu/cmsdiari; /opt/plesk/php/8.4/bin/php artisan queue:work --queue=export --stop-when-empty --sleep=1 --timeout=30 --max-jobs=30 > /dev/null
+
+MAILTO="avesani@spaggiari.eu"
+SHELL="/bin/sh"
+#@desc: Coda di default Laravel
+*       *       *       *       *       cd /var/www/vhosts/sogiscuola.eu/cmsdiari; /opt/plesk/php/8.4/bin/php artisan queue:work --queue=default --stop-when-empty --sleep=1 --timeout=30 --max-jobs=30 > /dev/null
+

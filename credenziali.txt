@@ -1,0 +1,25 @@
+FTP
+
+Url: cmsdiari.sogiscuola.eu
+Username: sogiscuola_ftp
+Password: XyJuxg_o1mr7Dq4^
+
+
+
+Database
+
+Url: localhost:3306 su cmsdiari.sogiscuola.eu
+IP: 195.231.18.151 (sogiscuola.eu e tutti i suoi sottodomini)
+Database: cmsdiari_dev
+Username: cmsdiari_admin
+Password: U_l#f6OjoLlhd5c4
+
+
+
+Database Preview
+
+Url: localhost:3306 su cmsdiaripreview.sogiscuola.eu
+IP: 195.231.18.151 (sogiscuola.eu e tutti i suoi sottodomini)
+Database: cmsdiari_preview
+Username: cmsdiari_preview_admin
+Password: 0*%NCD90ywmqxvfy

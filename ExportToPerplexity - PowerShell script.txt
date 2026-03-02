@@ -1,0 +1,234 @@
+Set-Location "C:\Progetti\CMSDiari - Geppetto"
+
+$outDir  = Join-Path (Get-Location) "_export_for_perplexity"
+$outFile = Join-Path $outDir "CMSDiari_sources.md"
+New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+
+$excludeDirs = @(
+  ".git",
+  "node_modules",
+  "vendor",
+  "storage",
+  "bootstrap\cache",
+  ".idea",
+  ".vscode",
+  "_export_for_perplexity"
+)
+
+$binaryExt = @(
+  ".png",".jpg",".jpeg",".gif",".webp",".svg",".ico",
+  ".pdf",
+  ".zip",".7z",".rar",
+  ".exe",".dll",
+  ".ttf",".otf",".woff",".woff2",
+  ".mp4",".mov",".avi",".mp3",
+  ".sqlite",".db"
+)
+
+$maxBytes = 2MB   # metti 0 per disattivare
+
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+function Append-Text([string]$text) {
+  [System.IO.File]::AppendAllText($outFile, $text, $Utf8NoBom)
+}
+
+function Write-Line([string]$text = "") {
+  Append-Text ($text + "`r`n")
+}
+
+function Write-Block([string]$text) {
+  if ($null -eq $text) { return }
+  Append-Text $text
+  if (-not ($text.EndsWith("`n"))) {
+    Append-Text "`r`n"
+  }
+}
+
+function Test-ProbablyBinary([string]$path, [int]$sampleBytes = 4096) {
+  try {
+    $fs = [System.IO.File]::Open($path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+    try {
+      $len = [Math]::Min($sampleBytes, [int]$fs.Length)
+      if ($len -le 0) { return $false }
+
+      $buf = New-Object byte[] $len
+      [void]$fs.Read($buf, 0, $len)
+
+      return ($buf -contains 0) # 0x00 => probabile binario
+    } finally {
+      $fs.Dispose()
+    }
+  } catch {
+    return $true
+  }
+}
+
+function Read-TextFile([string]$path) {
+  try {
+    $fs = [System.IO.File]::Open($path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+    try {
+      $sr = New-Object System.IO.StreamReader($fs, $true) # BOM detection
+      try { return $sr.ReadToEnd() }
+      finally { $sr.Dispose() }
+    } finally {
+      $fs.Dispose()
+    }
+  } catch {
+    return $null
+  }
+}
+
+function Count-TokenMatches([string]$text, [string]$token) {
+  if ([string]::IsNullOrEmpty($text) -or [string]::IsNullOrEmpty($token)) { return 0 }
+  $escaped = [regex]::Escape($token)
+  $pattern = "(?<![A-Za-z0-9_])$escaped(?![A-Za-z0-9_])"
+  return ([regex]::Matches($text, $pattern)).Count
+}
+
+if (Test-Path $outFile) { Remove-Item $outFile -Force }
+
+Write-Line '# CMSDiari — export sorgenti (Markdown)'
+Write-Line ''
+Write-Line ("Root: " + (Get-Location))
+Write-Line ("Generato: " + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'))
+Write-Line ''
+
+Write-Line '## Struttura cartelle'
+Write-Line '```text'
+try {
+  $tree = cmd /c tree /A /F 2>&1 | Out-String
+  Write-Block $tree
+} catch {
+  $fallback = (Get-ChildItem -Recurse -Force | ForEach-Object {
+    $_.FullName.Substring((Get-Location).Path.Length + 1)
+  }) -join "`r`n"
+  Write-Block $fallback
+}
+Write-Line '```'
+Write-Line ''
+
+Write-Line '## Contenuto file'
+Write-Line ''
+
+$stats = [ordered]@{
+  Included = 0
+  Skipped_ExcludedDir = 0
+  Skipped_BinaryExt = 0
+  Skipped_ProbablyBinary = 0
+  Skipped_TooLarge = 0
+  Skipped_ReadError = 0
+  Skipped_OutputFile = 0
+}
+
+# Heuristic: token “sospetti” che spesso indicano underscore mancanti nei nomi colonna / attributi.
+# Non è un replace, è solo un warning nel report.
+$underscoreHints = [ordered]@{
+  "createdat" = "created_at"
+  "updatedat" = "updated_at"
+  "deletedat" = "deleted_at"
+  "sentat" = "sent_at"
+  "expiresat" = "expires_at"
+  "registeredat" = "registered_at"
+  "schoolid" = "school_id"
+  "userid" = "user_id"
+  "campaignid" = "campaign_id"
+  "externalid" = "external_id"
+  "templateid" = "template_id"
+  "deadlinecollection" = "deadline_collection"
+  "deadlineannotation" = "deadline_annotation"
+}
+
+$underscoreFindings = @{}
+foreach ($k in $underscoreHints.Keys) {
+  $underscoreFindings[$k] = [ordered]@{ Count = 0; Files = New-Object System.Collections.Generic.List[string] }
+}
+
+$root = (Get-Location).Path
+$files = Get-ChildItem -Recurse -File -Force | Sort-Object FullName
+
+foreach ($f in $files) {
+  if ($f.FullName -eq $outFile) { $stats.Skipped_OutputFile++; continue }
+
+  $rel = $f.FullName.Substring($root.Length + 1)
+  $relNorm = $rel -replace '/', '\'
+
+  $dirHit = $false
+  foreach ($d in $excludeDirs) {
+    $dNorm = $d -replace '/', '\'
+    if ($relNorm -like "$dNorm\*" -or $relNorm -like "*\$dNorm\*") { $dirHit = $true; break }
+  }
+  if ($dirHit) { $stats.Skipped_ExcludedDir++; continue }
+
+  $ext = $f.Extension.ToLowerInvariant()
+  if ($binaryExt -contains $ext) { $stats.Skipped_BinaryExt++; continue }
+
+  if ($maxBytes -gt 0 -and $f.Length -gt $maxBytes) { $stats.Skipped_TooLarge++; continue }
+
+  if (Test-ProbablyBinary -path $f.FullName -sampleBytes 4096) { $stats.Skipped_ProbablyBinary++; continue }
+
+  $lang = switch -Regex ($ext) {
+    "\.php"  { "php"; break }
+    "\.js"   { "javascript"; break }
+    "\.ts"   { "typescript"; break }
+    "\.json" { "json"; break }
+    "\.yml|\.yaml" { "yaml"; break }
+    "\.md"   { "markdown"; break }
+    "\.css"  { "css"; break }
+    "\.html" { "html"; break }
+    "\.xml"  { "xml"; break }
+    default  { "text" }
+  }
+
+  $content = Read-TextFile -path $f.FullName
+  if ($null -eq $content) { $stats.Skipped_ReadError++; continue }
+
+  foreach ($k in $underscoreHints.Keys) {
+    $c = Count-TokenMatches -text $content -token $k
+    if ($c -gt 0) {
+      $underscoreFindings[$k]["Count"] += $c
+      if ($underscoreFindings[$k]["Files"].Count -lt 5) {
+        $underscoreFindings[$k]["Files"].Add($relNorm) | Out-Null
+      }
+    }
+  }
+
+  Write-Line ("### " + $relNorm)
+  Write-Line ''
+  Write-Line ('```' + $lang)
+  Write-Block $content
+  Write-Line '```'
+  Write-Line ''
+
+  $stats.Included++
+}
+
+Write-Line '## Report'
+Write-Line '```text'
+$report = ($stats.GetEnumerator() | ForEach-Object { "{0} = {1}" -f $_.Key, $_.Value }) -join "`r`n"
+Write-Block $report
+Write-Line '```'
+Write-Line ''
+
+Write-Line '## Underscore sanity check'
+Write-Line '```text'
+$any = $false
+foreach ($k in $underscoreHints.Keys) {
+  $count = [int] $underscoreFindings[$k]["Count"]
+  if ($count -le 0) { continue }
+
+  $any = $true
+  $suggest = $underscoreHints[$k]
+  $filesHit = ($underscoreFindings[$k]["Files"] -join ", ")
+  Write-Line ("TOKEN: {0}  -> SUGGERITO: {1}  | OCCORRENZE: {2}" -f $k, $suggest, $count)
+  if (-not [string]::IsNullOrWhiteSpace($filesHit)) {
+    Write-Line ("  Esempi file: " + $filesHit)
+  }
+}
+
+if (-not $any) {
+  Write-Line "OK: nessun token sospetto trovato."
+}
+Write-Line '```'
+
+Write-Host "Creato: $outFile"
